@@ -3,6 +3,7 @@ package com.antigravity.mod.entity;
 import com.antigravity.mod.capability.ISanity;
 import com.antigravity.mod.capability.SanityProvider;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -20,6 +21,7 @@ import net.minecraft.util.SoundEvent;
 import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.particles.ParticleTypes;
 import java.util.EnumSet;
 
 /**
@@ -30,47 +32,67 @@ import java.util.EnumSet;
  * - Custom "Sanity Drain" aura.
  * - "Stalking" AI goal that maintains line of sight breaks.
  * - Teleportation logic when stuck or unseen.
+ * - Light breaking mechanic: It hates light.
  */
 public class HollowEntity extends MonsterEntity {
 
+    // Synched data parameter for aggressive state
     private static final DataParameter<Boolean> AGGRESSIVE = EntityDataManager.defineId(HollowEntity.class, DataSerializers.BOOLEAN);
+    // Synched param for 'vanish' state (invisible)
+    private static final DataParameter<Boolean> VANISHED = EntityDataManager.defineId(HollowEntity.class, DataSerializers.BOOLEAN);
+
+    private int vanishTimer = 0;
 
     public HollowEntity(EntityType<? extends MonsterEntity> type, World worldIn) {
         super(type, worldIn);
-        this.xpReward = 20;
+        this.xpReward = 50;
     }
 
+    /**
+     * Registers the AI goals for this entity.
+     * Order matters: Lower number = higher priority.
+     */
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new SwimGoal(this));
         
-        // Custom Stalk Goal (implemented as anonymous class for complexity/inline logic)
-        this.goalSelector.addGoal(1, new StalkGoal(this, 1.2D, 10.0F));
+        // 1. Break Torches if they are nearby and blocking the stalk
+        this.goalSelector.addGoal(1, new BreakLightSourceGoal(this));
         
-        // Rush Goal: Attack if aggressive
+        // 2. Rush Goal: Attack if aggressive
         this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.5D, false));
         
+        // 3. Custom Stalk Goal (implemented as anonymous class for complexity/inline logic)
+        this.goalSelector.addGoal(3, new StalkGoal(this, 1.0D, 15.0F));
+        
+        // 4. Wander around avoiding water
         this.goalSelector.addGoal(5, new WaterAvoidingRandomWalkingGoal(this, 1.0D));
+        
+        // 5. Look at player if they are close
         this.goalSelector.addGoal(6, new LookAtGoal(this, PlayerEntity.class, 8.0F));
+        
+        // 6. Look randomly
         this.goalSelector.addGoal(7, new LookRandomlyGoal(this));
         
+        // Target Selectors
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, PlayerEntity.class, true));
     }
 
     public static AttributeModifierMap.MutableAttribute createAttributes() {
         return MonsterEntity.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 50.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.35D)
-                .add(Attributes.ATTACK_DAMAGE, 7.0D)
+                .add(Attributes.MAX_HEALTH, 80.0D) // Very tanky
+                .add(Attributes.MOVEMENT_SPEED, 0.30D)
+                .add(Attributes.ATTACK_DAMAGE, 12.0D) // Hard hitter
                 .add(Attributes.FOLLOW_RANGE, 64.0D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.5D);
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.7D);
     }
 
     @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(AGGRESSIVE, false);
+        this.entityData.define(VANISHED, false);
     }
 
     public void setAggressive(boolean aggressive) {
@@ -80,36 +102,80 @@ public class HollowEntity extends MonsterEntity {
     public boolean isAggressive() {
         return this.entityData.get(AGGRESSIVE);
     }
+    
+    public void setVanished(boolean vanished) {
+        this.entityData.set(VANISHED, vanished);
+        this.setInvisible(vanished);
+    }
 
     @Override
     public void tick() {
         super.tick();
         
+        // Check for Vanish Logic
+        if (!this.level.isClientSide) {
+             handleServerTick();
+        } else {
+             handleClientTick();
+        }
+    }
+    
+    /**
+     * Client-side only effects (particles etc)
+     */
+    private void handleClientTick() {
+        if (this.isAggressive()) {
+            // Spawn smoke/angry particles
+            this.level.addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 1.8, this.getZ(), 0, 0.1, 0);
+        }
+    }
+
+    /**
+     * Server-side logic for abilities and sanity drain
+     */
+    private void handleServerTick() {
         // Drain sanity of nearby players
-        if (!this.level.isClientSide && this.tickCount % 20 == 0) {
-            this.level.getEntitiesOfClass(PlayerEntity.class, this.getBoundingBox().inflate(10.0D)).forEach(player -> {
+        if (this.tickCount % 20 == 0) { // Every second
+            this.level.getEntitiesOfClass(PlayerEntity.class, this.getBoundingBox().inflate(15.0D)).forEach(player -> {
                 player.getCapability(SanityProvider.SANITY_CAPABILITY).ifPresent(cap -> {
-                    cap.decreaseSanity(1.5f); // Drain significant sanity
+                    // Drain more if aggressive
+                    float drain = this.isAggressive() ? 3.0f : 1.0f;
+                    cap.decreaseSanity(drain);
                 });
             });
         }
         
         // Teleport if stuck or far away and targeting player
-        if (!this.level.isClientSide && this.getTarget() != null && this.distanceToSqr(this.getTarget()) > 256.0D) {
-            teleportTowards(this.getTarget());
+        if (this.getTarget() != null) {
+            double distSq = this.distanceToSqr(this.getTarget());
+             if (distSq > 400.0D && this.random.nextFloat() < 0.05f) { // Far away (>20 blocks)
+                teleportTowards(this.getTarget());
+            }
         }
+        
+        // Vanish timer logic?
     }
     
     private void teleportTowards(Entity target) {
+        // Find a spot behind the target
         double x = target.getX() + (this.random.nextDouble() - 0.5D) * 10.0D;
-        double y = target.getY();
         double z = target.getZ() + (this.random.nextDouble() - 0.5D) * 10.0D;
-        this.teleportTo(x, y, z);
+        double y = target.getY();
+        
+        // Try to find ground
+        BlockPos targetPos = new BlockPos(x, y, z);
+        while (!this.level.getBlockState(targetPos).getMaterial().isSolid() && targetPos.getY() > 0) {
+            targetPos = targetPos.below();
+        }
+        targetPos = targetPos.above();
+        
+        this.teleportTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
+        this.level.playSound(null, this.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, this.getSoundSource(), 1.0f, 1.0f);
     }
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.ENDERMAN_AMBIENT;
+        return this.isAggressive() ? SoundEvents.ENDERMAN_SCREAM : SoundEvents.ENDERMAN_AMBIENT;
     }
 
     @Override
@@ -127,15 +193,19 @@ public class HollowEntity extends MonsterEntity {
         this.playSound(SoundEvents.ZOMBIE_STEP, 0.15F, 1.0F);
     }
     
+    // ==================================================================================================
+    // INNER CLASSES FOR AI GOALS
+    // ==================================================================================================
+
     /**
      * StalkGoal: The mob maintains a distance from the target and tries to stay out of sight using simple checks.
-     * Uses anonymous class logic extensively in registerGoals, but this inner class defines slightly different logic.
      */
     static class StalkGoal extends Goal {
         private final HollowEntity mob;
         private final double speedModifier;
         private final float maxDist;
         private int timeToRecalculatePath;
+        private int lookingAtTimer = 0;
 
         public StalkGoal(HollowEntity mob, double speedModifier, float maxDist) {
             this.mob = mob;
@@ -148,12 +218,14 @@ public class HollowEntity extends MonsterEntity {
         public boolean canUse() {
             LivingEntity target = this.mob.getTarget();
             if (target == null) return false;
-            return this.mob.distanceToSqr(target) > (double)(this.maxDist * this.maxDist);
+            // Only stalk if not already super close?
+             return true;
         }
 
         @Override
         public void start() {
             this.timeToRecalculatePath = 0;
+            this.mob.setAggressive(false);
         }
 
         @Override
@@ -161,26 +233,45 @@ public class HollowEntity extends MonsterEntity {
             LivingEntity target = this.mob.getTarget();
             if (target == null) return;
             
+            double distSq = this.mob.distanceToSqr(target);
+            boolean isLooking = isLookingAt(target, this.mob);
+            
+            // Look behavior
             this.mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
             
-            if (--this.timeToRecalculatePath <= 0) {
-                this.timeToRecalculatePath = 10;
-                // Move towards target but try to keep line of sight broken?
-                // For now, just move towards.
-                this.mob.getNavigation().moveTo(target, this.speedModifier);
+            // Aggression Trigger: Being stared at for too long
+            if (isLooking) {
+                lookingAtTimer++;
+            } else {
+                lookingAtTimer = Math.max(0, lookingAtTimer - 1);
             }
             
-            // Check if player is looking at mob
-            if (isLookingAt(target, this.mob)) {
-                // If player looks, stop moving or become aggressive
+            if (lookingAtTimer > 60) { // 3 seconds of staring
                 this.mob.setAggressive(true);
-                this.mob.getNavigation().stop();
-                // Maybe teleport away?
-                if (this.mob.getRandom().nextFloat() < 0.1f) {
-                    ((HollowEntity)this.mob).teleportTowards(target); // Abuse cast
-                }
+            }
+
+            // Movement Logic
+            if (this.mob.isAggressive()) {
+                // Rush
+                this.mob.getNavigation().moveTo(target, this.speedModifier * 1.5);
             } else {
-                this.mob.setAggressive(false);
+                // Stalk: Move closer only if not looking, or stop if looking
+                if (isLooking) {
+                    this.mob.getNavigation().stop();
+                    // Chance to teleport away if spotted
+                    if (this.mob.getRandom().nextInt(100) == 0) {
+                        this.mob.teleportTowards(target);
+                    }
+                } else {
+                    if (distSq > 25.0D) { // Move closer if far
+                        if (--this.timeToRecalculatePath <= 0) {
+                            this.timeToRecalculatePath = 10;
+                            this.mob.getNavigation().moveTo(target, this.speedModifier);
+                        }
+                    } else if (distSq < 10.0D) { // Back away if too close and unseen
+                         // Ideally back away logic here
+                    }
+                }
             }
         }
         
@@ -190,6 +281,44 @@ public class HollowEntity extends MonsterEntity {
             double length = diffVec.length();
             diffVec = diffVec.scale(1.0D / length);
             return viewVec.dot(diffVec) > 0.7D; // Within ~45 degrees FOV
+        }
+    }
+    
+    /**
+     * Goal to break torches/light sources nearby.
+     * Makes the environment scarier.
+     */
+    static class BreakLightSourceGoal extends MoveToBlockGoal {
+        private final HollowEntity mob;
+
+        public BreakLightSourceGoal(HollowEntity mob) {
+             super(mob, 1.0D, 8);
+             this.mob = mob;
+        }
+
+        @Override
+        protected boolean isValidTarget(net.minecraft.world.IWorldReader worldIn, BlockPos pos) {
+            BlockState state = worldIn.getBlockState(pos);
+            // Break torches and lanterns
+            return state.getBlock() == Blocks.TORCH || state.getBlock() == Blocks.WALL_TORCH || state.getBlock() == Blocks.LANTERN;
+        }
+        
+        @Override
+        public double acceptedDistance() {
+            return 1.5D;
+        }
+        
+        @Override
+        public void tick() {
+            super.tick();
+            if (this.isReachedTarget()) {
+                World world = this.mob.level;
+                BlockPos pos = this.blockPos;
+                 if (world.getGameRules().getBoolean(net.minecraft.world.GameRules.RULE_MOBGRIEFING)) {
+                    world.destroyBlock(pos, true);
+                    this.mob.playSound(SoundEvents.GLASS_BREAK, 1.0f, 1.0f);
+                }
+            }
         }
     }
 }
