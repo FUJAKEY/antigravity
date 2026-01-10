@@ -745,51 +745,30 @@ public class HollowEntity extends MonsterEntity {
      * Audio processing for the entity.
      * Simulates "Hearing" by analyzing sound categories and positions.
      */
-    public static class SoundLocalizer {
-        private final List<SoundEventRecording> heardSounds = new ArrayList<>();
+
+    /**
+     * Acoustic Sensor System.
+     * Allows the entity to track targets via sound events (footsteps, breaking blocks).
+     */
+    public static class AcousticSensor {
+        private final List<com.antigravity.mod.util.SoundEventRecording> recentSounds = new ArrayList<>();
+        private static final int MEMORY_DURATION = 100; // Ticks
         
-        public void onHearSound(BlockPos source, SoundEvent sound, float volume) {
-             // Mock triangulation
-             heardSounds.add(new SoundEventRecording(source, sound, System.currentTimeMillis()));
-             if (heardSounds.size() > 10) heardSounds.remove(0);
-             
-             analyzeThreat(source, volume);
+        public void onSoundHeard(BlockPos pos, float volume) {
+            recentSounds.add(new com.antigravity.mod.util.SoundEventRecording(null, pos, volume, System.currentTimeMillis()));
+            // Prune old sounds
+            long now = System.currentTimeMillis();
+            recentSounds.removeIf(r -> (now - r.timestamp) > 5000);
         }
         
-        private void analyzeThreat(BlockPos pos, float vol) {
-             // Is it an explosion?
-             // Is it a step?
+        public BlockPos getLoudestSource() {
+            if (recentSounds.isEmpty()) return null;
+            // Return most recent for now
+            return recentSounds.get(recentSounds.size() - 1).pos;
         }
         
-        public BlockPos estimateTargetPos() {
-             // Average recent sound positions
-             if (heardSounds.isEmpty()) return null;
-             double x=0, y=0, z=0;
-             for(SoundEventRecording s : heardSounds) {
-                 x += s.pos.getX();
-                 y += s.pos.getY();
-                 z += s.pos.getZ();
-             }
-             int s = heardSounds.size();
-             return new BlockPos(x/s, y/s, z/s);
-        }
-        
-        private static class SoundEventRecording {
-             BlockPos pos;
-             Object event; // Type erasure for simplicity
-             long time;
-             public SoundEventRecording(BlockPos p, Object e, long t) { pos = p; event = e; time = t; }
-        }
-        
-        // Advanced DSP simulation
-        public double[] calculateFFT(float[] waveform) {
-             // Simulate frequency analysis
-             return new double[waveform.length];
-        }
-        
-        public boolean detectHeartbeat(PlayerEntity player) {
-             // Simulate hearing range check
-             return true;
+        public boolean isSilentEnvironment() {
+            return recentSounds.isEmpty();
         }
     }
     
@@ -806,313 +785,107 @@ public class HollowEntity extends MonsterEntity {
         public static void broadcastTarget(HollowEntity source, LivingEntity target) {
             for(HollowEntity e : MEMBERS) {
                 if (e != source && e.distanceToSqr(source) < 256.0) {
-                     e.setTarget(target);
-                     e.setAggressive(true);
+                     // If nearby hollows are idle, they join the hunt
+                     if (e.getTarget() == null) {
+                        e.setTarget(target);
+                        e.setAggressive(true);
+                        e.playSound(net.minecraft.util.SoundEvents.ENDERMAN_SCREAM, 1.0f, 0.5f);
+                     }
                 }
             }
         }
-        
-        public static void coordinateFlanking(HollowEntity leader, LivingEntity target) {
-            // Calculate vectors
-            double angleStep = 360.0 / MEMBERS.size();
-            for(int i=0; i<MEMBERS.size(); i++) {
-                // Assign positions in a circle around target
-            }
-        }
-        
-        // Complex coordination logic
-        public void method1() {}
-        public void method2() {}
-        public void method3() {}
-        public void method4() {}
-        public void method5() {}
-        public void method6() {}
-        public void method7() {}
-        public void method8() {}
-        public void method9() {}
-        public void method50() {}
     }
     
     /**
      * Simulation of quantum superposition for the entity's invisibility.
      * It exists in multiple states until observed.
      */
-    public static class QuantumVanish {
-        private double[] waveFunction = new double[100];
-        private boolean collapsed = false;
+    /**
+     * Phase Shift Manager.
+     * Handles the entity's ability to "phase" out of reality (teleport/vanish) when observed.
+     */
+    public static class PhaseShiftManager {
+        private final HollowEntity entity;
+        private int cooldown = 0;
+        private static final int MAX_COOLDOWN = 100;
         
-        public QuantumVanish() {
-            for(int i=0; i<100; i++) waveFunction[i] = 1.0/10.0; // uniform distribution
+        public PhaseShiftManager(HollowEntity e) { this.entity = e; }
+        
+        public void tick() {
+            if (cooldown > 0) cooldown--;
         }
         
-        public void update() {
-             if (collapsed) return;
-             // Schrodinger equation evolution (mock)
-             for(int i=1; i<99; i++) {
-                 waveFunction[i] = (waveFunction[i-1] + waveFunction[i+1]) / 2.0;
+        public boolean tryPhaseShift(PlayerEntity observer) {
+            if (cooldown > 0) return false;
+            
+            // Check if player is looking at entity
+            net.minecraft.util.math.vector.Vector3d look = observer.getLookAngle();
+            net.minecraft.util.math.vector.Vector3d toEntity = entity.position().subtract(observer.position()).normalize();
+            double dot = look.dot(toEntity);
+            
+            if (dot > 0.5) { // Player is looking roughly at entity
+                 performTeleport();
+                 cooldown = MAX_COOLDOWN;
+                 return true;
+            }
+            return false;
+        }
+        
+        private void performTeleport() {
+             for(int i=0; i<10; i++) {
+                 double x = entity.getX() + (entity.getRandom().nextDouble() - 0.5) * 16.0;
+                 double y = entity.getY() + (entity.getRandom().nextInt(16) - 8);
+                 double z = entity.getZ() + (entity.getRandom().nextDouble() - 0.5) * 16.0;
+                 if (entity.level.getBlockState(new BlockPos(x, y, z)).isAir() && 
+                     entity.level.getBlockState(new BlockPos(x, y-1, z)).getMaterial().isSolid()) {
+                     entity.teleportTo(x, y, z);
+                     entity.playSound(net.minecraft.util.SoundEvents.CHORUS_FRUIT_TELEPORT, 1.0f, 0.5f);
+                     return;
+                 }
              }
         }
-        
-        public boolean observe(PlayerEntity observer) {
-             // Collapse wave function
-             collapsed = true;
-             // Probability of appearing
-             double prob = 0;
-             for(double d : waveFunction) prob += d;
-             return Math.random() < prob;
-        }
-        
-        public void reset() {
-             collapsed = false;
-             for(int i=0; i<100; i++) waveFunction[i] = Math.random();
-        }
-        
-        // Massive implementation of complex number math for quantum mechanics
-        public static class Complex {
-            double re, im;
-            public Complex(double r, double i) { re=r; im=i; }
-            public Complex mult(Complex o) { return new Complex(re*o.re - im*o.im, re*o.im + im*o.re); }
-            public double mod() { return Math.sqrt(re*re + im*im); }
-        }
-        
-        public List<Complex> hilbertSpace() {
-             List<Complex> space = new ArrayList<>();
-             for(int i=0; i<500; i++) space.add(new Complex(Math.random(), Math.random()));
-             return space;
-        }
-        
-        public void method1() {}
-        public void method2() {}
-        public void method3() {}
-        public void method4() {}
-        public void method5() {}
-        public void method6() {}
-        public void method7() {}
-        public void method8() {}
-        public void method9() {}
-        public void method10() {}
-        public void method11() {}
-        public void method12() {}
-        public void method13() {}
-        public void method14() {}
-        public void method15() {}
-        public void method16() {}
-        public void method17() {}
-        public void method18() {}
-        public void method19() {}
-        public void method20() {}
-        public void method21() {}
-        public void method22() {}
-        public void method23() {}
-        public void method24() {}
-        public void method25() {}
-        public void method26() {}
-        public void method27() {}
-        public void method28() {}
-        public void method29() {}
-        public void method30() {}
-        public void method31() {}
-        public void method32() {}
-        public void method33() {}
-        public void method34() {}
-        public void method35() {}
-        public void method36() {}
-        public void method37() {}
-        public void method38() {}
-        public void method39() {}
-        public void method40() {}
-        public void method41() {}
-        public void method42() {}
-        public void method43() {}
-        public void method44() {}
-        public void method45() {}
-        public void method46() {}
-        public void method47() {}
-        public void method48() {}
-        public void method49() {}
-        public void method50() {}
     }
 
     /**
      * Internal Neural Network for adaptive behavior.
      * Use a basic Multi-Layer Perceptron (MLP).
      */
-    public static class NeuralNetwork {
-        private Layer[] layers;
+    /**
+     * Adaptive Defense Mechanism.
+     * Records incoming damage types and builds temporary resistances.
+     */
+    public static class AdaptiveDefense {
+        private final java.util.Map<String, Float> resistanceMap = new java.util.HashMap<>();
         
-        public NeuralNetwork(int... topology) {
-            layers = new Layer[topology.length - 1];
-            for(int i=0; i<layers.length; i++) {
-                layers[i] = new Layer(topology[i], topology[i+1]);
+        public void onDamaged(net.minecraft.util.DamageSource source, float amount) {
+            String damageType = source.getMsgId();
+            resistanceMap.put(damageType, resistanceMap.getOrDefault(damageType, 0.0f) + 0.1f);
+            
+            // Cap resistance at 50%
+            if (resistanceMap.get(damageType) > 0.5f) {
+                resistanceMap.put(damageType, 0.5f);
             }
         }
         
-        public double[] feedForward(double[] inputs) {
-            layers[0].setConnects(inputs);
-            for(int i=0; i<layers.length; i++) {
-                layers[i].forward();
-                if (i < layers.length - 1) {
-                    layers[i+1].setConnects(layers[i].getOutputs());
-                }
+        public float modifyDamage(net.minecraft.util.DamageSource source, float amount) {
+            String type = source.getMsgId();
+            if (resistanceMap.containsKey(type)) {
+                float resistance = resistanceMap.get(type);
+                return amount * (1.0f - resistance);
             }
-            return layers[layers.length - 1].getOutputs();
+            return amount;
         }
         
-        public void backPropagate(double[] targets) {
-             // Calculate error
-             // Update weights
-        }
-        
-        private static class Layer {
-            Neuron[] neurons;
-            double[] inputs;
-            double[] outputs;
-            
-            public Layer(int in, int out) {
-                neurons = new Neuron[out];
-                for(int i=0; i<out; i++) neurons[i] = new Neuron(in);
-                inputs = new double[in];
-                outputs = new double[out];
-            }
-            
-            public void setConnects(double[] in) {
-                System.arraycopy(in, 0, inputs, 0, in.length);
-            }
-            
-            public void forward() {
-                for(int i=0; i<neurons.length; i++) {
-                    outputs[i] = neurons[i].activate(inputs);
-                }
-            }
-            
-            public double[] getOutputs() { return outputs; }
-        }
-        
-        private static class Neuron {
-            double[] weights;
-            double bias;
-            
-            public Neuron(int inputs) {
-                weights = new double[inputs];
-                for(int i=0; i<inputs; i++) weights[i] = Math.random() * 2.0 - 1.0;
-                bias = Math.random() * 2.0 - 1.0;
-            }
-            
-            public double activate(double[] input) {
-                double sum = 0;
-                for(int i=0; i<input.length; i++) sum += input[i] * weights[i];
-                return sigmoid(sum + bias);
-            }
-            
-            private double sigmoid(double x) {
-                return 1.0 / (1.0 + Math.exp(-x));
+        public void decay() {
+            // Slowly forget resistances
+            for (String key : new ArrayList<>(resistanceMap.keySet())) {
+                 float val = resistanceMap.get(key);
+                 val -= 0.001f;
+                 if (val <= 0) resistanceMap.remove(key);
+                 else resistanceMap.put(key, val);
             }
         }
-        
-        // Massive Deep Learning logic padding
-        public void saveWeights(String path) {}
-        public void loadWeights(String path) {}
-        public void train(double[][] data, double[][] labels, int epochs) {}
-        public double calculateLoss(double[] output, double[] target) { return 0; }
-        
-        public void method1() {}
-        public void method2() {}
-        public void method3() {}
-        public void method4() {}
-        public void method5() {}
-        public void method6() {}
-        public void method7() {}
-        public void method8() {}
-        public void method9() {}
-        public void method10() {}
-        public void method11() {}
-        public void method12() {}
-        public void method13() {}
-        public void method14() {}
-        public void method15() {}
-        public void method16() {}
-        public void method17() {}
-        public void method18() {}
-        public void method19() {}
-        public void method20() {}
-        public void method21() {}
-        public void method22() {}
-        public void method23() {}
-        public void method24() {}
-        public void method25() {}
-        public void method26() {}
-        public void method27() {}
-        public void method28() {}
-        public void method29() {}
-        public void method30() {}
-        public void method31() {}
-        public void method32() {}
-        public void method33() {}
-        public void method34() {}
-        public void method35() {}
-        public void method36() {}
-        public void method37() {}
-        public void method38() {}
-        public void method39() {}
-        public void method40() {}
-        public void method41() {}
-        public void method42() {}
-        public void method43() {}
-        public void method44() {}
-        public void method45() {}
-        public void method46() {}
-        public void method47() {}
-        public void method48() {}
-        public void method49() {}
-        public void method50() {}
-        public void method51() {}
-        public void method52() {}
-        public void method53() {}
-        public void method54() {}
-        public void method55() {}
-        public void method56() {}
-        public void method57() {}
-        public void method58() {}
-        public void method59() {}
-        public void method60() {}
-        public void method61() {}
-        public void method62() {}
-        public void method63() {}
-        public void method64() {}
-        public void method65() {}
-        public void method66() {}
-        public void method67() {}
-        public void method68() {}
-        public void method69() {}
-        public void method70() {}
-        public void method71() {}
-        public void method72() {}
-        public void method73() {}
-        public void method74() {}
-        public void method75() {}
-        public void method76() {}
-        public void method77() {}
-        public void method78() {}
-        public void method79() {}
-        public void method80() {}
-        public void method81() {}
-        public void method82() {}
-        public void method83() {}
-        public void method84() {}
-        public void method85() {}
-        public void method86() {}
-        public void method87() {}
-        public void method88() {}
-        public void method89() {}
-        public void method90() {}
-        public void method91() {}
-        public void method92() {}
-        public void method93() {}
-        public void method94() {}
-        public void method95() {}
-        public void method96() {}
-        public void method97() {    }
-}
+    }
         public void method98() {}
         public void method99() {}
         public void method100() {}
