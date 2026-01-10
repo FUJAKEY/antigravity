@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="All rights reserved"
+issueTrackerURL="https://github.com/antigravity/issues"
+
+[[mods]]
+modId="antigravity"
+version="1.0"
+displayName="Antigravity Horror Mod"
+displayURL="https://github.com/antigravity"
+logoFile="logo.png"
+credits="Produced by Antigravity AI"
+authors="Antigravity"
+description='''
+A terrifying mod that adds advanced physiological horror mechanics, tailored AI stalkers, and sanity systems.
+'''
+
+[[dependencies.antigravity]]
+modId="forge"
+mandatory=true
+versionRange="[36,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.antigravity]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.16.5,1.17)"
+ordering="NONE"
+side="BOTH"
