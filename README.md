@@ -1,98 +1,201 @@
 # Antigravity Horror Mod
 
-**Antigravity** is a highly advanced psychological horror mod for Minecraft 1.16.5 (Forge).
-It introduces deep sanity mechanics, physiological horror elements, gravitational anomalies, and a persistent stalking entity known as "The Hollow".
+**Antigravity** is a highly advanced psychological horror mod for Minecraft 1.16.5. It transforms the game into a terrifying survival experience with deep sanity mechanics, physiological horror, gravitational anomalies, and persistent stalking entities.
 
-> **Disclaimer**: This mod contains loud noises, jumpscares, and flashing lights. Play at your own risk.
+> **⚠️ WARNING**: This mod contains loud noises, jumpscares, flashing lights, and psychological horror themes. Play at your own risk.
 
-## 🇺🇸 English Description
+---
 
-### Core Features
+## 🇺🇸 English Guide
 
-#### 🧠 Sanity System
-The core of the mod is the Sanity System. Every player starts with 100% sanity, which decays based on:
+### 🧠 Sanity & Psychology
+Your sanity is your lifeline. It decays based on environmental factors:
 - **Darkness**: Staying in light level < 7 drains sanity.
 - **Depth**: Being deep underground (Y < 30) accelerates the decay.
-- **Monsters**: Being near hostile mobs induces panic.
-- **Moon Phase**: Full moons are especially dangerous.
+- **Isolation**: Being far from other players or villagers.
+- **Trauma**: Witnessing player deaths or horrifying entities.
 
-**Sanity Stages:**
-1.  **Anxiety (70-100%)**: You hear occasional whispers.
-2.  **Paranoia (50-70%)**: Movement slows down. You hear phantom footsteps.
-3.  **Panic (30-50%)**: Vision blurs. Hallucinations appear in chat.
-4.  **Insanity (<30%)**: You cannot sleep. Real damage is taken from fear. "The Hollow" begins to hunt.
+**Stages of Insanity:**
+1.  **Anxiety (70-100%)**: Occasional whispers, slight visual drifts.
+2.  **Paranoia (50-70%)**: Phantom footsteps, "watched" feeling, movement slowdowns.
+3.  **Panic (30-50%)**: blurred vision, hallucinations in chat, heartbeats.
+4.  **Madness (<30%)**: Cannot sleep, real damage from fear, **The Hollow** begins to hunt.
 
-#### 👁️ The Hollow
-"The Hollow" is a tall, distorted entity that stalks players with low sanity.
-- **Adaptive AI**: Uses an Acoustic Sensor to track player footsteps and block breaking.
-- **Phase Shift**: Capable of "Quantum Vanishing" when observed directly, teleporting to safety.
-- **Light Breaking**: Actively destroys torches and lanterns to create darkness.
-- **Adaptive Defense**: Learns from damage sources and builds temporary resistance.
-- **DO NOT STARE**: Looking at it for too long provokes an instant attack.
+**Nightmare System**:
+When sanity is low, you may be pulled into procedural **Nightmare Sequences**. These are personalized horror events based on your tracked fears (Darkness, Heights, Enclosed Spaces).
 
-#### 🌌 Gravity Anomalies
-Unstable regions of space-time that warp physics.
-- **Effects**: Can reverse gravity, induce nausea, or spawn entities.
-- **Management**: Use the **Anomaly Scanner** to detect nearby fields.
+### 👹 Entities
 
-#### 📟 Anomaly Scanner
-A high-tech tool for tracking anomalies and paranormal activity.
-- **Visualization Engine**: Displays nearby anomaly vectors.
-- **Battery System**: Requires charging; enters low-power mode when idle.
+#### The Hollow
+A tall, distorted entity that stalks players with low sanity.
+- **Adaptive AI**: Uses an Acoustic Sensor to track footsteps and block breaking.
+- **Phase Shift**: Vanishes if you look directly at it ("Don't Blink").
+- **Light Breaking**: Actively destroys torches and lanterns.
+- **Learns**: Adapts to your combat style over time.
 
-### Technical Architecture
-The mod is built with advanced internal systems:
-- **Performance Tracker**: Dynamically adjusts mod intensity based on server tick rate (TPS).
-- **Config Integrity**: Automatically validates configuration values to prevent crashes.
-- **Backup Manager**: Securely handles mod data persistence.
+#### Shadow Entity
+A creature of pure darkness.
+- **Photosensitive**: Takes damage in light, invincible in darkness.
+- **Stalking**: Circles players from the edge of vision.
+- **Phase Shift**: Can dissolve into shadows and reappear behind you.
 
-### Installation
-1.  Install Minecraft Forge 1.16.5 (Recommended build).
-2.  Drop `antigravity-1.0.jar` into your `mods` folder.
-3.  Launch the game.
+### 🌍 World Events & Hazards
+
+#### 🩸 Blood Moon
+A periodic apocalyptic event where the moon turns red.
+- **Effects**: Hostile mobs spawn in waves with increasing strength.
+- **Atmosphere**: Fog turns red, torches may extinguish.
+- **Danger**: Sleeping is disabled. Survive the night.
+
+#### 🌌 Dimensional Rifts
+Tears in the fabric of reality.
+- **Types**: Void (sucks you in), Nether (burns), End (teleports), Temporal (ages blocks), Shadow (blinds).
+- **Physics**: Rifts exert gravitational pull or push.
+
+#### ☣️ Corruption
+A spreading infection that consumes the world.
+- **Source**: Created by dark rituals or anomalous events.
+- **Spread**: Converts grass to podzol, water to ice, and decays structures.
+- **Cleansing**: Must be purified swiftly or it will consume your base.
+
+#### ⏳ Temporal Distortion
+Zones where time flows differently.
+- **Slow**: Movement and mining are lethargic.
+- **Fast**: Entities move at dangerous speeds.
+- **Freeze**: Time stops completely in small pockets.
+- **Chaos**: Unpredictable time jumps.
+
+#### 👻 Psychic Echoes
+ Ghostly replays of past player actions.
+- **Mechanic**: The mod records player movements and deaths.
+- **Haunting**: You may see a "ghost" of yourself or others repeating past actions in areas where you spent time.
+
+### 🕯️ Magic & Items
+
+#### Anomalies & Scanner
+- **Gravity Anomalies**: Invisible fields that flip gravity.
+- **Anomaly Scanner**: High-tech gadget to visualize these fields and track paranormal activity.
+
+#### Cursed Items
+Powerful items with significant drawbacks.
+- **Curses**: Vampirism (heal on kill, burn in sun), Fragility (breaks easily), Paranoia (sanity drain), Weight (slowness).
+- **Purification**: Cleanse items at a **Purification Altar**.
+
+#### Dark Rituals
+Perform rituals using specific circles and materials.
+- **Blood Pact**: Sacrifice health for power.
+- **Dark Summoning**: Call forth entities.
+- **Shadow Binding**: Become one with the darkness.
+- **Risk**: Failed rituals cause catastrophic backlash (explosions, summon hostile mobs).
+
+### 🛠️ Commands
+Admin commands for testing:
+- `/ag sanity set <value>` - Set sanity.
+- `/ag spawn <hollow|shadow>` - Spawn entities.
+- `/ag rift <type>` - Create rifts.
+- `/ag bloodmoon start` - Start event.
+- `/ag help` - View all commands.
 
 ---
 
-## 🇷🇺 Русское Описание
+## 🇷🇺 Русское Руководство
 
-### Особенности
+**Antigravity** — это продвинутый мод в жанре психологического хоррора для Minecraft 1.16.5. Он полностью меняет игру, добавляя механику рассудка, физиологический ужас, гравитационные аномалии и преследующих сущностей.
 
-#### 🧠 Система Рассудка
-Основа мода — Система Рассудка. Каждый игрок начинает с 100% рассудка, который падает в зависимости от:
-- **Темноты**: Нахождение в уровне света < 7 снижает рассудок.
-- **Глубины**: Нахождение глубоко под землей (Y < 30) ускоряет падение.
-- **Монстров**: Близость к враждебным мобам вызывает панику.
-- **Фазы Луны**: Полнолуние особенно опасно.
+> **⚠️ ПРЕДУПРЕЖДЕНИЕ**: Мод содержит громкие звуки, скримеры, мерцающий свет и темы психологического насилия.
 
-#### 👁️ Пустой (The Hollow)
-"Пустой" — это высокое, искаженное существо, которое преследует игроков с низким рассудком.
-- **Адаптивный ИИ**: Использует акустический сенсор для отслеживания шагов игрока.
-- **Фазовый Сдвиг**: Способен исчезать (телепортироваться) при прямом зрительном контакте.
-- **Уничтожение Света**: Ломает факелы, чтобы создать темноту.
-- **Адаптивная Защита**: Получает сопротивление к типу урона, который вы используете.
+### 🧠 Рассудок и Психология
+Ваш рассудок — это ваша жизнь. Он падает от:
+- **Темноты**: Нахождение без света убивает рассудок.
+- **Глубины**: Чем глубже вы (Y < 30), тем быстрее безумие.
+- **Изоляции**: Одиночество опасно.
+- **Травм**: Смерти друзей или вид монстров.
 
-#### 🌌 Гравитационные Аномалии
-Нестабильные области пространства-времени.
-- **Эффекты**: Могут инвертировать гравитацию, вызывать тошноту или призывать существ.
-- **Обнаружение**: Используйте **Сканер Аномалий**.
+**Стадии Безумия:**
+1.  **Тревога (70-100%)**: Шепот, легкие визуальные искажения.
+2.  **Паранойя (50-70%)**: Фантомные шаги, чувство слежки, замедление.
+3.  **Паника (30-50%)**: Размытое зрение, галлюцинации в чате.
+4.  **Безумие (<30%)**: Невозможность спать, физический урон от страха, **Пустой** начинает охоту.
 
-#### 📟 Сканер Аномалий
-Высокотехнологичное устройство для поиска аномалий.
-- **Визуализация**: Показывает векторы ближайших полей.
-- **Батарея**: Требует зарядки; переходит в спящий режим для экономии энергии.
+**Кошмары**:
+При низком рассудке вас может затянуть в **Процедурные Кошмары** — персонализированные ужасы, основанные на ваших страхах (Темнота, Высота, Замкнутые пространства).
 
-### Установка
-1.  Установите Minecraft Forge 1.16.5 (Рекомендуемая версия).
-2.  Переместите `antigravity-1.0.jar` в папку `mods`.
-3.  Запустите игру.
+### 👹 Сущности
+
+#### Пустой (The Hollow)
+Высокая, искаженная фигура.
+- **Адаптивный ИИ**: Слышит ваши шаги и ломание блоков.
+- **Фазовый Сдвиг**: Исчезает, если смотреть прямо на него.
+- **Ломание Света**: Уничтожает факелы.
+- **Обучение**: Запоминает, как вы сражаетесь.
+
+#### Теневая Сущность (Shadow Entity)
+Существо из чистой тьмы.
+- **Светобоязнь**: Получает урон на свету, неуязвима в темноте.
+- **Преследование**: Кружит на периферии зрения.
+- **Атака**: Растворяется в тени и нападает со спины.
+
+### 🌍 События и Опасности
+
+#### 🩸 Кровавая Луна
+Периодическое событие.
+- **Эффект**: Волны усиленных монстров.
+- **Атмосфера**: Красный туман, факелы гаснут.
+- **Опасность**: Сон отключен. Выживайте.
+
+#### 🌌 Разломы (Rifts)
+Дыры в реальности.
+- **Типы**: Пустота (засасывает), Ад (жжет), Край (телепортирует), Время (старит блоки).
+- **Физика**: Разломы имеют гравитацию.
+
+#### ☣️ Порча (Corruption)
+Заражение, поглощающее мир.
+- **Источник**: Ритуалы или аномалии.
+- **Распространение**: Превращает траву в подзол, воду в лед.
+- **Очистка**: Требует немедленного устранения.
+
+#### ⏳ Искажение Времени
+Зоны с другим течением времени.
+- **Замедление**: Вы двигаетесь как в киселе.
+- **Ускорение**: Монстры становятся молниеносными.
+- **Хаос**: Время скачет непредсказуемо.
+
+#### 👻 Психические Эхо
+Призрачные повторы действий игроков.
+- **Механика**: Мод записывает ваши движения и смерти.
+- **Призраки**: Вы можете увидеть "эхо" себя или друзей, повторяющее прошлые действия.
+
+### 🕯️ Магия и Предметы
+
+#### Аномалии
+- **Гравитационные Аномалии**: Невидимые поля, переворачивающие гравитацию.
+- **Сканер Аномалий**: Гаджет для их обнаружения.
+
+#### Проклятые Предметы
+Мощные вещи с ценой.
+- **Проклятия**: Вампиризм, Хрупкость, Паранойя, Тяжесть.
+- **Очищение**: Используйте Алтарь Очищения.
+
+#### Темные Ритуалы
+Магия крови и теней.
+- **Ритуалы**: Кровавый Пакт, Темный Призыв, Связь с Тенью.
+- **Риск**: Ошибка в ритуале может убить вас.
+
+### 🛠️ Команды
+Для админов и тестов:
+- `/ag sanity set <value>` - Установить рассудок.
+- `/ag spawn <hollow|shadow>` - Призвать сущность.
+- `/ag help` - Все команды.
 
 ---
 
-## Development / Разработка
+### Installation / Установка
+1.  Install **Minecraft Forge 1.16.5**.
+2.  Drop `antigravity-1.0.jar` into `mods`.
+3.  Launch.
 
-### Building / Сборка
+### Development / Разработка
+Build via Gradle:
 ```bash
 ./gradlew build
 ```
-
-**License**: All Rights Reserved / Все права защищены.

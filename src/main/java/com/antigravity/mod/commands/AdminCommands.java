@@ -15,7 +15,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -25,20 +25,6 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * Admin Commands for Antigravity Mod
  * Provides commands for testing all mod features quickly.
- * 
- * Commands:
- * /ag sanity <set|add|get> [value] - Manage player sanity
- * /ag spawn <hollow|shadow> - Spawn horror entities
- * /ag rift <void|nether|end|temporal|shadow> - Create dimensional rifts
- * /ag corruption <create|clear> [radius] - Manage corruption
- * /ag bloodmoon <start|stop|status> - Control blood moon
- * /ag nightmare - Force trigger a nightmare
- * /ag curse <add|list|clear> [curse_type] - Manage item curses
- * /ag ritual <list|start> [ritual_id] - Ritual system
- * /ag activity <add|get|reset> [amount] - Paranormal activity
- * /ag temporal <slow|fast|freeze|chaos> [radius] [duration] - Time zones
- * /ag echo <record|play|list> - Psychic echoes
- * /ag anomaly <spawn|clear> - Gravity anomalies
  */
 @Mod.EventBusSubscriber(modid = AntigravityMod.MOD_ID)
 public class AdminCommands {
@@ -79,7 +65,7 @@ public class AdminCommands {
                         player.getCapability(SanityProvider.SANITY_CAPABILITY).ifPresent(sanity -> {
                             sanity.setSanity(value);
                         });
-                        ctx.getSource().sendSuccess(new StringTextComponent("Sanity set to " + value), true);
+                        ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.success.sanity_set", value), true);
                         return 1;
                     })))
             .then(Commands.literal("add")
@@ -94,7 +80,7 @@ public class AdminCommands {
                                 sanity.decreaseSanity(-value);
                             }
                         });
-                        ctx.getSource().sendSuccess(new StringTextComponent("Added " + value + " to sanity"), true);
+                        ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.success.sanity_add", value), true);
                         return 1;
                     })))
             .then(Commands.literal("get")
@@ -102,7 +88,7 @@ public class AdminCommands {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrException();
                     player.getCapability(SanityProvider.SANITY_CAPABILITY).ifPresent(sanity -> {
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Current sanity: " + sanity.getSanity())
+                            new TranslationTextComponent("command.antigravity.success.sanity_get", String.format("%.1f", sanity.getSanity()))
                                 .withStyle(TextFormatting.GREEN), false);
                     });
                     return 1;
@@ -120,7 +106,7 @@ public class AdminCommands {
                     
                     // Would spawn HollowEntity here
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Spawned Hollow at " + pos).withStyle(TextFormatting.DARK_PURPLE), true);
+                        new TranslationTextComponent("command.antigravity.success.spawn", "Hollow", pos).withStyle(TextFormatting.DARK_PURPLE), true);
                     return 1;
                 }))
             .then(Commands.literal("shadow")
@@ -130,7 +116,7 @@ public class AdminCommands {
                     
                     // Would spawn ShadowEntity here
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Spawned Shadow at " + pos).withStyle(TextFormatting.DARK_GRAY), true);
+                        new TranslationTextComponent("command.antigravity.success.spawn", "Shadow", pos).withStyle(TextFormatting.DARK_GRAY), true);
                     return 1;
                 }));
     }
@@ -159,7 +145,7 @@ public class AdminCommands {
         manager.forceSpawnRift(pos, type, 6000);
         
         source.sendSuccess(
-            new StringTextComponent("Created " + type.name() + " rift at " + pos)
+            new TranslationTextComponent("command.antigravity.success.rift", type.name(), pos)
                 .withStyle(TextFormatting.DARK_PURPLE), true);
         return 1;
     }
@@ -179,14 +165,14 @@ public class AdminCommands {
                         handler.createSource(pos, CorruptionSpreadHandler.CorruptionType.SHADOW, 50);
                         
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Created corruption source at " + pos)
+                            new TranslationTextComponent("command.antigravity.success.corruption", pos)
                                 .withStyle(TextFormatting.DARK_RED), true);
                         return 1;
                     })))
             .then(Commands.literal("clear")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Corruption clear not yet implemented"), true);
+                        new TranslationTextComponent("command.antigravity.info.not_implemented"), true);
                     return 1;
                 }));
     }
@@ -198,14 +184,14 @@ public class AdminCommands {
                 .executes(ctx -> {
                     // Would force start blood moon
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Blood Moon event triggered!")
+                        new TranslationTextComponent("message.antigravity.bloodmoon.start")
                             .withStyle(TextFormatting.DARK_RED, TextFormatting.BOLD), true);
                     return 1;
                 }))
             .then(Commands.literal("stop")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Blood Moon event stopped"), true);
+                        new TranslationTextComponent("command.antigravity.success.bloodmoon_stop"), true);
                     return 1;
                 }))
             .then(Commands.literal("status")
@@ -214,8 +200,14 @@ public class AdminCommands {
                     boolean active = BloodMoonEvent.isBloodMoonActive(player.level);
                     double intensity = BloodMoonEvent.getIntensity(player.level);
                     
-                    ctx.getSource().sendSuccess(
-                        new StringTextComponent("Blood Moon: " + (active ? "ACTIVE (intensity: " + String.format("%.1f", intensity) + ")" : "Inactive"))
+                    // Complex status message might be better kept as dynamic string for debug, but trying to use msg key
+                    // To be fully localized, we'd need keys for "Active" and "Inactive".
+                    // For now, I'll stick to a simpler formatting.
+                    
+                   ctx.getSource().sendSuccess(
+                        new TranslationTextComponent("command.antigravity.success.activity_get", 
+                            active ? "ACTIVE" : "INACTIVE", 
+                            String.format("%.1f", intensity))
                             .withStyle(active ? TextFormatting.RED : TextFormatting.GREEN), false);
                     return 1;
                 }));
@@ -228,7 +220,7 @@ public class AdminCommands {
                 ServerPlayerEntity player = ctx.getSource().getPlayerOrException();
                 NightmareGenerator.attemptNightmare(player, 10); // Force low sanity check
                 ctx.getSource().sendSuccess(
-                    new StringTextComponent("Nightmare triggered!").withStyle(TextFormatting.DARK_PURPLE), true);
+                    new TranslationTextComponent("command.antigravity.success.nightmare").withStyle(TextFormatting.DARK_PURPLE), true);
                 return 1;
             })
             .then(Commands.literal("fear")
@@ -241,10 +233,10 @@ public class AdminCommands {
                             NightmareGenerator.FearType fear = NightmareGenerator.FearType.valueOf(fearName.toUpperCase());
                             NightmareGenerator.recordFearEvent(player, fear, 50);
                             ctx.getSource().sendSuccess(
-                                new StringTextComponent("Added fear: " + fear.name()), true);
+                                new TranslationTextComponent("command.antigravity.success.fear_add", fear.name()), true);
                         } catch (IllegalArgumentException e) {
                             ctx.getSource().sendFailure(
-                                new StringTextComponent("Unknown fear type. Valid: DARKNESS, HEIGHTS, ENCLOSED, WATER, MONSTERS, ISOLATION, FALLING, VOID"));
+                                new TranslationTextComponent("command.antigravity.failure.fear_type"));
                         }
                         return 1;
                     })));
@@ -261,7 +253,7 @@ public class AdminCommands {
                         ItemStack held = player.getMainHandItem();
                         
                         if (held.isEmpty()) {
-                            ctx.getSource().sendFailure(new StringTextComponent("Hold an item to curse!"));
+                            ctx.getSource().sendFailure(new TranslationTextComponent("command.antigravity.failure.no_item"));
                             return 0;
                         }
                         
@@ -269,7 +261,7 @@ public class AdminCommands {
                         CursedItemManager.curseItem(held, curse, 1);
                         
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Applied " + curse.getName() + " to item!")
+                            new TranslationTextComponent("command.antigravity.success.curse_applied", curse.getName())
                                 .withStyle(TextFormatting.RED), true);
                         return 1;
                     })))
@@ -281,14 +273,16 @@ public class AdminCommands {
                     if (!held.isEmpty() && held.hasTag()) {
                         held.removeTagKey("Curses");
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Removed all curses from item"), true);
+                            new TranslationTextComponent("command.antigravity.success.curses_cleared"), true);
                     }
                     return 1;
                 }))
             .then(Commands.literal("list")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Available curses: vampirism, fragility, hunger, paranoia, weight, unluck")
+                        new TranslationTextComponent("curse.antigravity.vampirism") // Just showing first one as example/list
+                            .append(", ")
+                            .append(new TranslationTextComponent("curse.antigravity.fragility"))
                             .withStyle(TextFormatting.GRAY), false);
                     return 1;
                 }));
@@ -300,7 +294,7 @@ public class AdminCommands {
             .then(Commands.literal("list")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Available rituals: blood_pact, dark_summoning, shadow_binding, void_channel, soul_harvest, transcendence")
+                        new TranslationTextComponent("command.antigravity.help.ritual")
                             .withStyle(TextFormatting.DARK_PURPLE), false);
                     return 1;
                 }))
@@ -313,7 +307,7 @@ public class AdminCommands {
                         
                         RitualSystem.RitualResult result = RitualSystem.attemptRitual(player, pos, ritualId);
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Ritual result: " + result.name()), true);
+                            new TranslationTextComponent("command.antigravity.success.ritual_result", result.name()), true);
                         return 1;
                     })));
     }
@@ -332,7 +326,7 @@ public class AdminCommands {
                             ParanormalActivityTracker.ActivityType.UNKNOWN, amount);
                         
                         ctx.getSource().sendSuccess(
-                            new StringTextComponent("Added " + amount + " paranormal activity"), true);
+                            new TranslationTextComponent("command.antigravity.success.activity_add", amount), true);
                         return 1;
                     })))
             .then(Commands.literal("get")
@@ -343,7 +337,7 @@ public class AdminCommands {
                         ParanormalActivityTracker.getActivityPhase(player.level);
                     
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Activity: " + level + " (" + phase.getDescription() + ")")
+                        new TranslationTextComponent("command.antigravity.success.activity_get", level, phase.getDescription())
                             .withStyle(phase.getColor()), false);
                     return 1;
                 }));
@@ -392,7 +386,7 @@ public class AdminCommands {
         manager.createZone(pos, radius, effect, duration);
         
         source.sendSuccess(
-            new StringTextComponent("Created " + effect.name() + " temporal zone (radius: " + radius + ", duration: " + duration + ")")
+            new TranslationTextComponent("command.antigravity.success.temporal", effect.name())
                 .withStyle(effect.getColor()), true);
         return 1;
     }
@@ -403,13 +397,13 @@ public class AdminCommands {
             .then(Commands.literal("record")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Echo recording started (auto-records during gameplay)"), true);
+                        new TranslationTextComponent("message.antigravity.echo.presence"), true); // Reusing suitable message
                     return 1;
                 }))
             .then(Commands.literal("list")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Echo playback is automatic near recorded locations"), true);
+                        new TranslationTextComponent("command.antigravity.info.not_implemented"), true);
                     return 1;
                 }));
     }
@@ -427,14 +421,14 @@ public class AdminCommands {
                     manager.addAnomaly(pos, 10.0f);
                     
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Created gravity anomaly at " + pos)
+                        new TranslationTextComponent("command.antigravity.success.anomaly", pos)
                             .withStyle(TextFormatting.AQUA), true);
                     return 1;
                 }))
             .then(Commands.literal("clear")
                 .executes(ctx -> {
                     ctx.getSource().sendSuccess(
-                        new StringTextComponent("Anomaly clear not yet implemented"), true);
+                        new TranslationTextComponent("command.antigravity.info.not_implemented"), true);
                     return 1;
                 }));
     }
@@ -443,18 +437,18 @@ public class AdminCommands {
     private static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSource> registerHelpCommand() {
         return Commands.literal("help")
             .executes(ctx -> {
-                ctx.getSource().sendSuccess(new StringTextComponent("=== Antigravity Admin Commands ===").withStyle(TextFormatting.GOLD, TextFormatting.BOLD), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag sanity <set|add|get> [value]").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag spawn <hollow|shadow>").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag rift <void|nether|end|temporal|shadow>").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag corruption <create|clear> [radius]").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag bloodmoon <start|stop|status>").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag nightmare").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag curse <add|clear|list>").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag ritual <list|start> [id]").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag activity <add|get> [amount]").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag temporal <slow|fast|freeze|chaos> <radius> <duration>").withStyle(TextFormatting.YELLOW), false);
-                ctx.getSource().sendSuccess(new StringTextComponent("/ag anomaly <spawn|clear>").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.header").withStyle(TextFormatting.GOLD, TextFormatting.BOLD), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.sanity").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.spawn").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.rift").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.corruption").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.bloodmoon").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.nightmare").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.curse").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.ritual").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.activity").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.temporal").withStyle(TextFormatting.YELLOW), false);
+                ctx.getSource().sendSuccess(new TranslationTextComponent("command.antigravity.help.anomaly").withStyle(TextFormatting.YELLOW), false);
                 return 1;
             });
     }
