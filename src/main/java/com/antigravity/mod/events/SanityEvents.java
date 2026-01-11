@@ -98,7 +98,6 @@ public class SanityEvents {
             // This provider manages the serialization and instance of ISanity.
             SanityProvider provider = new SanityProvider();
             event.addCapability(SANITY_CAP_LOC, provider);
-            AntigravityMod.LOGGER.debug("Attached Sanity capability to player: " + event.getObject().getName().getString());
         }
     }
 
